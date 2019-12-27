@@ -1,0 +1,11 @@
+<nav search_view="search">
+  <view name="pacrooti_guild_bank_history" default='true' />
+  <view name="pacrooti_guild_store_history" />
+  <view name="pacrooti_long_term_raffle" />
+
+  <collection label="Misc">
+    <view name="dashboards" />
+    <view name="search" />
+	<view name="alerts" />
+  </collection>
+</nav>

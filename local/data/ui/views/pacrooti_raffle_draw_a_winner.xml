@@ -1,0 +1,95 @@
+<form theme="dark">
+  <label>Pacrooti Raffle Draw a Winner</label>
+  <fieldset submitButton="false">
+    <input type="time" token="field1">
+      <label>Raffle Time Frame</label>
+      <default>
+        <earliest>1562994000</earliest>
+        <latest>1563649200</latest>
+      </default>
+    </input>
+  </fieldset>
+  <row>
+    <panel>
+      <title>Winning Ticket Info</title>
+      <table>
+        <search>
+          <query>index="pacrooti" sourcetype=guild_history
+|eval goldValue=if((extracted_eventType=21 OR extracted_eventType=22),itemCount,"")
+|eval item=if((extracted_eventType=21 OR extracted_eventType=22),"Gold",item)
+|eval goldValue=if((extracted_eventType=13 OR extracted_eventType=14),(avgPrice * itemCount),goldValue)
+|transaction maxspan=1s displayName item extracted_eventType
+|dedup _time displayName
+|search extracted_eventType=21 goldValue=1
+|eval ticketID=_time + displayName
+|dedup displayName
+|table _time,ticketID,displayName
+|eval Event="Ticket Purchased"
+|eval randomID=random()
+|sort - randomID
+
+|join type=left displayName [
+    search index=pacrooti sourcetype=raffle_results
+    |eval ticketStatus="Winner"
+    |table ticketID,ticketStatus,displayName
+]
+
+|fillnull value="None" ticketStatus
+|search ticketStatus="None"
+
+|head 1
+|fields - randomID
+|eval Ticket_Draw_Time=strftime(now(), "%m-%d-%Y %H:%M:%S %Z")
+|collect index=pacrooti sourcetype=raffle_results source=raffle_results
+|rename displayName as Account_Name
+|table Account_Name,ticketID,Ticket_Draw_Time</query>
+          <earliest>$field1.earliest$</earliest>
+          <latest>$field1.latest$</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="count">20</option>
+        <option name="dataOverlayMode">none</option>
+        <option name="drilldown">none</option>
+        <option name="percentagesRow">false</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="rowNumbers">false</option>
+        <option name="totalsRow">false</option>
+        <option name="wrap">true</option>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Past Winners</title>
+      <table>
+        <search>
+          <query>index=pacrooti sourcetype=raffle_results
+|rename displayName as Account_Name
+|table info_search_time,Account_Name,ticketID,Ticket_Draw_Time,Ticket_Purchase_Time
+|sort - info_search_time
+|table Account_Name,ticketID,Ticket_Draw_Time,Ticket_Purchase_Time</query>
+          <earliest>$field1.earliest$</earliest>
+          <latest>$field1.latest$</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="count">20</option>
+        <option name="dataOverlayMode">none</option>
+        <option name="drilldown">none</option>
+        <option name="percentagesRow">false</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="rowNumbers">false</option>
+        <option name="totalsRow">false</option>
+        <option name="wrap">true</option>
+      </table>
+    </panel>
+    <panel>
+      <html>
+        <h1>
+          <center>
+            <a href="https://pacrooti.entropycraft.com:8000/en-US/app/Pacrooti/pacrooti_long_term_raffle">Click here to go back to the Main Raffle Page</a>
+          </center>
+        </h1>
+      </html>
+    </panel>
+  </row>
+</form>

@@ -1,0 +1,112 @@
+<form theme="dark">
+  <label>Pacrooti Long Term Raffle</label>
+  <fieldset submitButton="false">
+    <input type="time" token="field1">
+      <label>Raffle Time Period</label>
+      <default>
+        <earliest>1562994000</earliest>
+        <latest>1563649200</latest>
+      </default>
+    </input>
+    <input type="text" token="ticketCost">
+      <label>Ticket Cost in Gold</label>
+      <default>1</default>
+      <initialValue>1</initialValue>
+    </input>
+  </fieldset>
+  <row>
+    <panel>
+      <title>Raffle Participants</title>
+      <table>
+        <search>
+          <query>index="pacrooti" sourcetype=guild_history
+|eval goldValue=if((extracted_eventType=21 OR extracted_eventType=22),itemCount,"")
+|eval item=if((extracted_eventType=21 OR extracted_eventType=22),"Gold",item)
+|eval goldValue=if((extracted_eventType=13 OR extracted_eventType=14),(avgPrice * itemCount),goldValue)
+|transaction maxspan=1s displayName item extracted_eventType
+|dedup _time displayName
+|search extracted_eventType=21 goldValue=$ticketCost$
+|dedup displayName
+|stats count by displayName
+|rename count as "Tickets Purchased" displayName as "Account Name"</query>
+          <earliest>$field1.earliest$</earliest>
+          <latest>$field1.latest$</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="count">20</option>
+        <option name="dataOverlayMode">none</option>
+        <option name="drilldown">none</option>
+        <option name="percentagesRow">false</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="rowNumbers">false</option>
+        <option name="totalsRow">true</option>
+        <option name="wrap">true</option>
+      </table>
+    </panel>
+    <panel>
+      <title>Run a Raffle</title>
+      <html>
+        <h1>
+          <center>
+            <a href="https://pacrooti.entropycraft.com:8000/en-US/app/Pacrooti/pacrooti_raffle_draw_a_winner">Click here to pick one winning ticket!</a>
+          </center>
+        </h1>
+      </html>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Ticket Purchase Log</title>
+      <table>
+        <search>
+          <query>index="pacrooti" sourcetype=guild_history
+|eval goldValue=if((extracted_eventType=21 OR extracted_eventType=22),itemCount,"")
+|eval item=if((extracted_eventType=21 OR extracted_eventType=22),"Gold",item)
+|eval goldValue=if((extracted_eventType=13 OR extracted_eventType=14),(avgPrice * itemCount),goldValue)
+|transaction maxspan=1s displayName item extracted_eventType
+|dedup _time displayName
+|search extracted_eventType=21 goldValue=$ticketCost$
+|eval ticketID=_time + displayName
+|dedup displayName
+|table _time,ticketID,displayName
+|eval Event="Ticket Purchased"
+|sort - _time</query>
+          <earliest>$field1.earliest$</earliest>
+          <latest>$field1.latest$</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="count">20</option>
+        <option name="dataOverlayMode">none</option>
+        <option name="drilldown">none</option>
+        <option name="percentagesRow">false</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="rowNumbers">false</option>
+        <option name="totalsRow">false</option>
+        <option name="wrap">true</option>
+      </table>
+    </panel>
+    <panel>
+      <title>Winning Ticket History</title>
+      <table>
+        <search>
+          <query>index=pacrooti sourcetype=raffle_results
+|rename displayName as Account_Name
+|table info_search_time,Account_Name,ticketID,Ticket_Draw_Time,Ticket_Purchase_Time
+|sort - info_search_time
+|table Account_Name,ticketID,Ticket_Draw_Time,Ticket_Purchase_Time</query>
+          <earliest>$field1.earliest$</earliest>
+          <latest>$field1.latest$</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="count">20</option>
+        <option name="dataOverlayMode">none</option>
+        <option name="drilldown">none</option>
+        <option name="percentagesRow">false</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="rowNumbers">false</option>
+        <option name="totalsRow">false</option>
+        <option name="wrap">true</option>
+      </table>
+    </panel>
+  </row>
+</form>

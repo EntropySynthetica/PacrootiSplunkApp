@@ -1,0 +1,465 @@
+<form theme="dark">
+  <label>Pacrooti Guild Bank History</label>
+  <fieldset submitButton="false">
+    <input type="time" token="field1">
+      <label>Time Period</label>
+      <default>
+        <earliest>-7d@h</earliest>
+        <latest>now</latest>
+      </default>
+    </input>
+    <input type="multiselect" token="rankFilter">
+      <label>Show Members of Rank</label>
+      <choice value="*">Show All</choice>
+      <valuePrefix>"</valuePrefix>
+      <valueSuffix>"</valueSuffix>
+      <delimiter> OR rankName=</delimiter>
+      <fieldForLabel>rankName</fieldForLabel>
+      <fieldForValue>rankName</fieldForValue>
+      <search>
+        <query>index="pacrooti"
+|dedup rankName
+|table rankName,rankIndex
+|sort - rankIndex
+|table rankName</query>
+        <earliest>-7d@h</earliest>
+        <latest>now</latest>
+      </search>
+      <default>*</default>
+    </input>
+    <input type="multiselect" token="displayName">
+      <label>Filter by Account Name</label>
+      <choice value="*">Show All</choice>
+      <default>*</default>
+      <valuePrefix>"</valuePrefix>
+      <valueSuffix>"</valueSuffix>
+      <delimiter> OR displayName=</delimiter>
+      <fieldForLabel>displayName</fieldForLabel>
+      <fieldForValue>displayName</fieldForValue>
+      <search>
+        <query>index="pacrooti"
+|dedup displayName
+|table displayName</query>
+        <earliest>-7d@h</earliest>
+        <latest>now</latest>
+      </search>
+    </input>
+    <input type="multiselect" token="eventName">
+      <label>Filter by Event Type</label>
+      <choice value="*">Show All</choice>
+      <choice value="Bankgold Added">Bankgold Added</choice>
+      <choice value="Bankgold Removed">Bankgold Removed</choice>
+      <choice value="Bankitem Added">Bankitem Added</choice>
+      <choice value="Bankitem Removed">Bankitem Removed</choice>
+      <default>*</default>
+      <valuePrefix>"</valuePrefix>
+      <valueSuffix>"</valueSuffix>
+      <delimiter> OR eventName=</delimiter>
+    </input>
+  </fieldset>
+  <row>
+    <panel>
+      <single>
+        <title>Total Guild Members for Period</title>
+        <search>
+          <query>index="pacrooti" sourcetype=guild_roster
+|dedup displayName
+|stats count</query>
+          <earliest>$field1.earliest$</earliest>
+          <latest>$field1.latest$</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="colorBy">value</option>
+        <option name="colorMode">none</option>
+        <option name="drilldown">none</option>
+        <option name="numberPrecision">0</option>
+        <option name="rangeColors">["0x53a051", "0x0877a6", "0xf8be34", "0xf1813f", "0xdc4e41"]</option>
+        <option name="rangeValues">[0,30,70,100]</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="showSparkline">1</option>
+        <option name="showTrendIndicator">1</option>
+        <option name="trellis.enabled">0</option>
+        <option name="trellis.scales.shared">1</option>
+        <option name="trellis.size">medium</option>
+        <option name="trendColorInterpretation">standard</option>
+        <option name="trendDisplayMode">absolute</option>
+        <option name="unitPosition">after</option>
+        <option name="useColors">0</option>
+        <option name="useThousandSeparators">1</option>
+      </single>
+      <single>
+        <title>Total Gold Deposited during Time Period</title>
+        <search>
+          <query>index="pacrooti" sourcetype=guild_history
+|eval goldValue=if((extracted_eventType=21 OR extracted_eventType=22),itemCount,"")
+|eval item=if((extracted_eventType=21 OR extracted_eventType=22),"Gold",item)
+|transaction maxspan=5s displayName item extracted_eventType
+|dedup _time displayName
+
+|join type=left displayName [
+    search index="pacrooti" sourcetype=guild_roster
+    |dedup displayName
+    |table displayName,rankName
+]
+
+|search rankName=$rankFilter$
+|search displayName=$displayName$
+|search eventName="Bankgold Added"
+|stats sum(goldValue) as TotalGold</query>
+          <earliest>$field1.earliest$</earliest>
+          <latest>$field1.latest$</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </single>
+    </panel>
+    <panel>
+      <title>Guild Members by Rank</title>
+      <chart>
+        <search>
+          <query>index="pacrooti" sourcetype=guild_roster
+|dedup displayName
+|stats count by rankName</query>
+          <earliest>$field1.earliest$</earliest>
+          <latest>$field1.latest$</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="charting.axisLabelsX.majorLabelStyle.overflowMode">ellipsisNone</option>
+        <option name="charting.axisLabelsX.majorLabelStyle.rotation">0</option>
+        <option name="charting.axisTitleX.visibility">visible</option>
+        <option name="charting.axisTitleY.visibility">visible</option>
+        <option name="charting.axisTitleY2.visibility">visible</option>
+        <option name="charting.axisX.abbreviation">none</option>
+        <option name="charting.axisX.scale">linear</option>
+        <option name="charting.axisY.abbreviation">none</option>
+        <option name="charting.axisY.scale">linear</option>
+        <option name="charting.axisY2.abbreviation">none</option>
+        <option name="charting.axisY2.enabled">0</option>
+        <option name="charting.axisY2.scale">inherit</option>
+        <option name="charting.chart">pie</option>
+        <option name="charting.chart.bubbleMaximumSize">50</option>
+        <option name="charting.chart.bubbleMinimumSize">10</option>
+        <option name="charting.chart.bubbleSizeBy">area</option>
+        <option name="charting.chart.nullValueMode">gaps</option>
+        <option name="charting.chart.showDataLabels">none</option>
+        <option name="charting.chart.sliceCollapsingThreshold">0.01</option>
+        <option name="charting.chart.stackMode">default</option>
+        <option name="charting.chart.style">shiny</option>
+        <option name="charting.drilldown">none</option>
+        <option name="charting.layout.splitSeries">0</option>
+        <option name="charting.layout.splitSeries.allowIndependentYRanges">0</option>
+        <option name="charting.legend.labelStyle.overflowMode">ellipsisMiddle</option>
+        <option name="charting.legend.mode">standard</option>
+        <option name="charting.legend.placement">right</option>
+        <option name="charting.lineWidth">2</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="trellis.enabled">0</option>
+        <option name="trellis.scales.shared">1</option>
+        <option name="trellis.size">medium</option>
+      </chart>
+    </panel>
+    <panel>
+      <title>Total Bank Transactions for Period</title>
+      <table>
+        <search>
+          <query>index="pacrooti" sourcetype=guild_history
+|eval goldValue=if((extracted_eventType=21 OR extracted_eventType=22),itemCount,"")
+|eval item=if((extracted_eventType=21 OR extracted_eventType=22),"Gold",item)
+|transaction maxspan=5s displayName item extracted_eventType
+|dedup _time displayName
+|stats count by eventName
+|rename eventName as Events</query>
+          <earliest>$field1.earliest$</earliest>
+          <latest>$field1.latest$</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="count">10</option>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="totalsRow">true</option>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Total Gold Deposited by Member for Time Period</title>
+      <table>
+        <search>
+          <query>index="pacrooti" sourcetype=guild_history
+|eval goldValue=if((extracted_eventType=21 OR extracted_eventType=22),itemCount,"")
+|eval item=if((extracted_eventType=21 OR extracted_eventType=22),"Gold",item)
+|transaction maxspan=5s displayName item extracted_eventType
+|dedup _time displayName
+
+|join type=left displayName [
+    search index="pacrooti" sourcetype=guild_roster
+    |dedup displayName
+    |table displayName,rankName
+]
+
+|search rankName=$rankFilter$
+|search displayName=$displayName$
+|search eventName="Bankgold Added"
+|stats sum(goldValue) as TotalGold by displayName
+|rename displayName as accountName
+|sort - TotalGold</query>
+          <earliest>$field1.earliest$</earliest>
+          <latest>$field1.latest$</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="count">20</option>
+        <option name="dataOverlayMode">none</option>
+        <option name="drilldown">none</option>
+        <option name="percentagesRow">false</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="rowNumbers">false</option>
+        <option name="totalsRow">false</option>
+        <option name="wrap">true</option>
+      </table>
+    </panel>
+    <panel>
+      <title>Bank Transaction Event Count by Member</title>
+      <table>
+        <search>
+          <query>index="pacrooti" sourcetype=guild_history
+|eval goldValue=if((extracted_eventType=21 OR extracted_eventType=22),itemCount,"")
+|eval item=if((extracted_eventType=21 OR extracted_eventType=22),"Gold",item)
+|transaction maxspan=5s displayName item extracted_eventType
+|dedup _time displayName
+
+|join type=left displayName [
+    search index="pacrooti" sourcetype=guild_roster
+    |dedup displayName
+    |table displayName,rankName
+]
+
+
+|search rankName=$rankFilter$
+|search displayName=$displayName$
+|search eventName=$eventName$
+
+|stats count by eventName displayName
+|rename displayName as accountName
+|sort - count</query>
+          <earliest>$field1.earliest$</earliest>
+          <latest>$field1.latest$</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="count">20</option>
+        <option name="dataOverlayMode">none</option>
+        <option name="drilldown">none</option>
+        <option name="percentagesRow">false</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="rowNumbers">false</option>
+        <option name="totalsRow">false</option>
+        <option name="wrap">true</option>
+      </table>
+    </panel>
+    <panel>
+      <title>Benefactor's With No Donations During Time Period</title>
+      <table>
+        <search>
+          <query>index=pacrooti sourcetype=guild_roster 
+|dedup displayName      
+|table  displayName,rankName
+
+|join type=left displayName [
+    search index="pacrooti" sourcetype=guild_history
+    |eval goldValue=if((extracted_eventType=21 OR extracted_eventType=22),itemCount,"")
+    |eval item=if((extracted_eventType=21 OR extracted_eventType=22),"Gold",item)
+    |transaction maxspan=5s displayName item extracted_eventType
+    |dedup _time displayName
+    |search eventName="Bankgold Added" OR  eventName="Bankitem Added"
+    |dedup displayName
+    |table displayName
+    |eval HasDonated="Yes"
+    ]
+|fillnull value="No" HasDonated
+|search rankName="Benefactor" HasDonated="No"
+|search displayName=$displayName$
+|table displayName
+|rename displayName as accountName
+|sort accountName</query>
+          <earliest>$field1.earliest$</earliest>
+          <latest>$field1.latest$</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="count">20</option>
+        <option name="dataOverlayMode">none</option>
+        <option name="drilldown">none</option>
+        <option name="percentagesRow">false</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="rowNumbers">false</option>
+        <option name="totalsRow">false</option>
+        <option name="wrap">true</option>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Bank Transaction Event Count Activity Over Time</title>
+      <chart>
+        <search>
+          <query>index="pacrooti" sourcetype=guild_history
+|eval goldValue=if((extracted_eventType=21 OR extracted_eventType=22),itemCount,"")
+|eval item=if((extracted_eventType=21 OR extracted_eventType=22),"Gold",item)
+|transaction maxspan=5s displayName item extracted_eventType
+|dedup _time displayName
+
+|join type=left displayName [
+    search index="pacrooti" sourcetype=guild_roster
+    |dedup displayName
+    |table displayName,rankName
+]
+
+|search rankName=$rankFilter$
+|search displayName=$displayName$
+|search eventName=$eventName$
+
+|timechart span=1h count by eventName</query>
+          <earliest>$field1.earliest$</earliest>
+          <latest>$field1.latest$</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="charting.axisLabelsX.majorLabelStyle.overflowMode">ellipsisNone</option>
+        <option name="charting.axisLabelsX.majorLabelStyle.rotation">0</option>
+        <option name="charting.axisTitleX.visibility">visible</option>
+        <option name="charting.axisTitleY.visibility">visible</option>
+        <option name="charting.axisTitleY2.visibility">visible</option>
+        <option name="charting.axisX.abbreviation">none</option>
+        <option name="charting.axisX.scale">linear</option>
+        <option name="charting.axisY.abbreviation">none</option>
+        <option name="charting.axisY.scale">linear</option>
+        <option name="charting.axisY2.abbreviation">none</option>
+        <option name="charting.axisY2.enabled">0</option>
+        <option name="charting.axisY2.scale">inherit</option>
+        <option name="charting.chart">area</option>
+        <option name="charting.chart.bubbleMaximumSize">50</option>
+        <option name="charting.chart.bubbleMinimumSize">10</option>
+        <option name="charting.chart.bubbleSizeBy">area</option>
+        <option name="charting.chart.nullValueMode">gaps</option>
+        <option name="charting.chart.showDataLabels">none</option>
+        <option name="charting.chart.sliceCollapsingThreshold">0.01</option>
+        <option name="charting.chart.stackMode">default</option>
+        <option name="charting.chart.style">shiny</option>
+        <option name="charting.drilldown">none</option>
+        <option name="charting.layout.splitSeries">0</option>
+        <option name="charting.layout.splitSeries.allowIndependentYRanges">0</option>
+        <option name="charting.legend.labelStyle.overflowMode">ellipsisMiddle</option>
+        <option name="charting.legend.mode">standard</option>
+        <option name="charting.legend.placement">right</option>
+        <option name="charting.lineWidth">2</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="trellis.enabled">0</option>
+        <option name="trellis.scales.shared">1</option>
+        <option name="trellis.size">medium</option>
+      </chart>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Bank Transaction History Table</title>
+      <table>
+        <search>
+          <query>index="pacrooti" sourcetype=guild_history
+|eval goldValue=if((extracted_eventType=21 OR extracted_eventType=22),itemCount,"")
+|eval item=if((extracted_eventType=21 OR extracted_eventType=22),"Gold",item)
+|eval goldValue=if((extracted_eventType=13 OR extracted_eventType=14),(avgPrice * itemCount),goldValue)
+
+|rex field=source "\/guild_history-(?P&lt;upload_time&gt;.*)\.csv"
+|eval upload_time=strptime(upload_time,"%y%m%d%H%M%S")
+|eval price_temp=upload_time+","+goldValue
+
+|transaction maxspan=5s displayName item extracted_eventType
+|dedup _time displayName
+
+|eval goldValue=substr(mvindex(price_temp,mvcount(price_temp)-1),19)
+
+|join type=left displayName [
+    search index="pacrooti" sourcetype=guild_roster
+    |dedup displayName
+    |table displayName,rankName
+]
+
+|search rankName=$rankFilter$
+|search displayName=$displayName$
+|search eventName=$eventName$
+|table _time,eventName,displayName,rankName,item,itemCount,goldValue
+|rename displayName as accountName eventName as event
+
+|sort - _time</query>
+          <earliest>$field1.earliest$</earliest>
+          <latest>$field1.latest$</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="count">20</option>
+        <option name="dataOverlayMode">none</option>
+        <option name="drilldown">none</option>
+        <option name="percentagesRow">false</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="rowNumbers">false</option>
+        <option name="totalsRow">false</option>
+        <option name="wrap">true</option>
+        <format type="color" field="event">
+          <colorPalette type="map">{"Bankitem Added":#53A051,"Bankitem Removed":#AF575A,"Bankgold Added":#F8BE34}</colorPalette>
+        </format>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Estimated Value Added to Guild Bank by Member</title>
+      <table>
+        <search>
+          <query>index="pacrooti" sourcetype=guild_history
+|eval goldValue=if((extracted_eventType=21 OR extracted_eventType=22),itemCount,"")
+|eval item=if((extracted_eventType=21 OR extracted_eventType=22),"Gold",item)
+|eval goldValue=if((extracted_eventType=13 OR extracted_eventType=14),(avgPrice * itemCount),goldValue)
+
+|rex field=source "\/guild_history-(?P&lt;upload_time&gt;.*)\.csv"
+|eval upload_time=strptime(upload_time,"%y%m%d%H%M%S")
+|eval price_temp=upload_time+","+goldValue
+
+|transaction maxspan=5s displayName item extracted_eventType
+|dedup _time displayName
+
+|eval goldValue=substr(mvindex(price_temp,mvcount(price_temp)-1),19)
+
+|join type=left displayName [
+    search index="pacrooti" sourcetype=guild_roster
+    |dedup displayName
+    |table displayName,rankName
+]
+
+|search rankName=$rankFilter$
+|search displayName=$displayName$
+|search eventName="*"
+|stats 
+sum(eval(if((extracted_eventType=13 OR extracted_eventType=21),goldValue,null))) as estDepositValue
+sum(eval(if((extracted_eventType=14 OR extracted_eventType=22),goldValue,null))) as estWithdrawValue 
+by displayName
+|fillnull value=0 estWithdrawValue estDepositValue
+|eval ValueAdded=(estDepositValue - estWithdrawValue)
+|search ValueAdded!=0
+|sort ValueAdded
+|rename displayName as accountName</query>
+          <earliest>$field1.earliest$</earliest>
+          <latest>$field1.latest$</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="count">20</option>
+        <option name="dataOverlayMode">none</option>
+        <option name="drilldown">none</option>
+        <option name="percentagesRow">false</option>
+        <option name="rowNumbers">false</option>
+        <option name="totalsRow">false</option>
+        <option name="wrap">true</option>
+        <format type="color" field="ValueAdded">
+          <colorPalette type="list">[#DC4E41,#B6C75A,#53A051]</colorPalette>
+          <scale type="threshold">-30000,0</scale>
+        </format>
+      </table>
+    </panel>
+  </row>
+</form>
